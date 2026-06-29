@@ -51,6 +51,26 @@ def load_codex_credentials(auth_path: str | None = None) -> tuple[str | None, st
     return access_token, account_id
 
 
+def _env_float(name: str) -> float | None:
+    """Read a float env var; return None when unset or unparseable (never crash boot)."""
+    raw = os.getenv(name)
+    if raw is None or raw == "":
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def _env_choice(name: str, allowed: set[str]) -> str | None:
+    """Read a lower-cased enum env var, accepting only known values; else None."""
+    raw = os.getenv(name)
+    if not raw:
+        return None
+    value = raw.strip().lower()
+    return value if value in allowed else None
+
+
 def load_model_map(raw: str | None = None) -> dict[str, str]:
     payload = os.getenv("PROXY_MODEL_MAP", "") if raw is None else raw
     if not payload:
@@ -79,6 +99,13 @@ class ProxySettings:
     model_map: dict[str, str]
     timeout: httpx.Timeout
     upstream_mode: str = "openai"
+    # Generation tuning (env-driven). When set, the proxy injects these into the
+    # upstream Responses payload — the only place to steer a codex/GPT-5 backend,
+    # since Claude Code's Anthropic request carries no reasoning/verbosity field.
+    temperature: float | None = None
+    reasoning_effort: str | None = None
+    reasoning_summary: str | None = None
+    verbosity: str | None = None
 
     @property
     def codex_mode(self) -> bool:
@@ -106,6 +133,14 @@ class ProxySettings:
                 pool=5.0,
             ),
             upstream_mode=mode,
+            temperature=_env_float("PROXY_TEMPERATURE"),
+            reasoning_effort=_env_choice(
+                "PROXY_REASONING_EFFORT", {"minimal", "low", "medium", "high"}
+            ),
+            reasoning_summary=_env_choice(
+                "PROXY_REASONING_SUMMARY", {"auto", "concise", "detailed", "none"}
+            ),
+            verbosity=_env_choice("PROXY_VERBOSITY", {"low", "medium", "high"}),
         )
 
 

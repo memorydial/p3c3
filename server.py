@@ -84,6 +84,12 @@ async def debug() -> dict[str, Any]:
         "model_map": s.model_map,
         "debug_logging": s.debug,
         "openai_api_key_set": bool(s.api_key),
+        "tuning": {
+            "temperature": s.temperature,
+            "reasoning_effort": s.reasoning_effort,
+            "reasoning_summary": s.reasoning_summary,
+            "verbosity": s.verbosity,
+        },
     }
     if s.codex_mode:
         token, account_id = load_codex_credentials()
@@ -145,7 +151,15 @@ async def _relay_stream(
 async def create_message(body: AnthropicMessagesRequest):
     settings = ProxySettings.from_env()
     mapped_model = resolve_model(body.model, settings.model_map)
-    payload = anthropic_request_to_responses(body, settings.model_map, codex_mode=settings.codex_mode)
+    payload = anthropic_request_to_responses(
+        body,
+        settings.model_map,
+        codex_mode=settings.codex_mode,
+        temperature=settings.temperature,
+        reasoning_effort=settings.reasoning_effort,
+        reasoning_summary=settings.reasoning_summary,
+        verbosity=settings.verbosity,
+    )
     _debug_log(
         settings,
         requested_model=body.model,

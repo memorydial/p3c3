@@ -150,6 +150,19 @@ developable locally for free.
 | `PROXY_DEBUG` | off | Log model/stream/counts + upstream errors (never keys, never prompt content) |
 | `PROXY_HOST` / `PROXY_PORT` | `127.0.0.1` / `4000` | Bind address |
 | `CODEX_AUTH_PATH` | `~/.codex/auth.json` | Where codex mode reads the OAuth token |
+| `PROXY_TEMPERATURE` | request value | Override sampling temperature; wins over any per-request value |
+| `PROXY_REASONING_EFFORT` | unset | `minimal` / `low` / `medium` / `high` → upstream `reasoning.effort` |
+| `PROXY_REASONING_SUMMARY` | unset | `auto` / `concise` / `detailed` (`none` to omit) → `reasoning.summary` |
+| `PROXY_VERBOSITY` | unset | `low` / `medium` / `high` → upstream `text.verbosity` |
+
+### Generation tuning
+
+Claude Code's Anthropic-shaped request has no field for reasoning effort or verbosity, so
+those are steered at the proxy. `PROXY_REASONING_EFFORT` and `PROXY_VERBOSITY` map to the
+Responses API's `reasoning.effort` and `text.verbosity` — the codex/GPT-5 knobs — and are
+injected only when set. `PROXY_TEMPERATURE` overrides the request's temperature. Unknown
+values are ignored (the proxy never crashes on a bad env value). Note: some reasoning models
+reject a non-default `temperature`; leave it unset on codex mode if the backend 400s.
 
 ### Codex mode (ChatGPT-OAuth backend)
 

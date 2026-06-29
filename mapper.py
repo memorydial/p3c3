@@ -130,6 +130,11 @@ def anthropic_request_to_responses(
     request: AnthropicMessagesRequest,
     model_map: dict[str, str] | None = None,
     codex_mode: bool = False,
+    *,
+    temperature: float | None = None,
+    reasoning_effort: str | None = None,
+    reasoning_summary: str | None = None,
+    verbosity: str | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "model": resolve_model(request.model, model_map),
@@ -148,8 +153,21 @@ def anthropic_request_to_responses(
     elif codex_mode:
         # The ChatGPT codex backend 400s with "Instructions are required" if absent.
         payload["instructions"] = "You are a helpful coding assistant."
-    if request.temperature is not None:
-        payload["temperature"] = request.temperature
+    # Generation tuning: env override wins over a per-request temperature; reasoning
+    # effort/summary and text verbosity are codex/GPT-5 controls with no Anthropic
+    # equivalent, so they only ever come from proxy config.
+    effective_temperature = temperature if temperature is not None else request.temperature
+    if effective_temperature is not None:
+        payload["temperature"] = effective_temperature
+    reasoning: dict[str, str] = {}
+    if reasoning_effort is not None:
+        reasoning["effort"] = reasoning_effort
+    if reasoning_summary is not None and reasoning_summary != "none":
+        reasoning["summary"] = reasoning_summary
+    if reasoning:
+        payload["reasoning"] = reasoning
+    if verbosity is not None:
+        payload["text"] = {"verbosity": verbosity}
     tools = map_tools(request.model_dump().get("tools"))
     if tools:
         payload["tools"] = tools
