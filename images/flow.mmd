@@ -1,0 +1,11 @@
+flowchart LR
+    CC["Claude Code<br/>(Anthropic Messages API)"]
+    PX["P3C3 proxy<br/>FastAPI + pydantic<br/>localhost:4000<br/>reshapes JSON, runs no model"]
+    CX["codex / gpt-5.5<br/>the brain"]
+    OL["Ollama, or any<br/>OpenAI-Responses backend"]
+
+    CC -->|"Anthropic request"| PX
+    PX -->|"reshaped to OpenAI Responses"| CX
+    CX -->|"Responses + SSE"| PX
+    PX -->|"reshaped back to Anthropic<br/>(stream + tool calls)"| CC
+    PX -.->|"alternative backend"| OL

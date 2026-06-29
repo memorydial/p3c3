@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant CC as Claude Code
+    participant P as P3C3 proxy
+    participant CX as codex (gpt-5.5)
+    CC->>P: POST /v1/messages (Anthropic, stream:false)
+    Note over P: reshape to Responses<br/>add instructions, store:false,<br/>force stream:true
+    P->>CX: POST /responses (stream-only)
+    CX-->>P: SSE output_text.delta
+    CX-->>P: SSE output_text.delta
+    CX-->>P: response.completed
+    Note over P: aggregate deltas into<br/>one Anthropic message
+    P-->>CC: 200 OK (Anthropic message)
